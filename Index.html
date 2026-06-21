@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>יומן טיסה – רחפן</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Heebo:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --navy:#0D1B2A; --navy2:#112236; --blue:#1E90FF; --blue2:#0a6fd8;
+  --teal:#00C8C8; --red:#FF4B4B; --green:#00E676;
+  --white:#F0F6FF; --muted:#6B8BAE; --border:rgba(30,144,255,0.22);
+}
+body { background:var(--navy); font-family:'Heebo',sans-serif; color:var(--white); min-height:100vh; padding-bottom:60px; }
+
+header {
+  background:linear-gradient(135deg,#09131f,#0e2040);
+  border-bottom:2px solid var(--blue);
+  padding:16px 24px 14px;
+}
+.hud-top { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+.hud-logo { display:flex; align-items:center; gap:12px; }
+.drone-icon {
+  width:44px; height:44px; background:rgba(30,144,255,0.1);
+  border:2px solid var(--blue); border-radius:10px;
+  display:flex; align-items:center; justify-content:center; font-size:22px;
+}
+.hud-title h1 { font-family:'Rajdhani',sans-serif; font-size:22px; font-weight:700; letter-spacing:2px; }
+.hud-title p  { font-size:10px; color:var(--teal); letter-spacing:3px; text-transform:uppercase; margin-top:2px; }
+.clk { font-family:'Rajdhani',sans-serif; font-size:20px; font-weight:600; color:var(--teal); background:rgba(0,0,0,0.3); border:1px solid var(--border); border-radius:8px; padding:6px 14px; }
+
+main { max-width:640px; margin:24px auto 0; padding:0 16px; }
+
+.sec { font-family:'Rajdhani',sans-serif; font-size:11px; font-weight:600; letter-spacing:3px; text-transform:uppercase; color:var(--blue); margin-bottom:10px; display:flex; align-items:center; gap:8px; }
+.sec::after { content:''; flex:1; height:1px; background:linear-gradient(90deg,var(--border),transparent); }
+
+.card { background:var(--navy2); border:1px solid var(--border); border-radius:12px; padding:20px; margin-bottom:16px; position:relative; }
+.card-bar { position:absolute; top:0; right:0; width:4px; height:100%; background:linear-gradient(180deg,var(--blue),transparent); border-radius:0 12px 12px 0; }
+.card-bar-red { background:linear-gradient(180deg,var(--red),transparent); }
+
+.row2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+@media(max-width:480px){ .row2{ grid-template-columns:1fr; } }
+
+.field { display:flex; flex-direction:column; gap:5px; }
+.field+.field { margin-top:12px; }
+.field label { font-size:11px; font-weight:600; letter-spacing:1.5px; text-transform:uppercase; color:var(--muted); }
+.field input, .field textarea {
+  background:rgba(0,0,0,0.35); border:1px solid var(--border); border-radius:8px;
+  padding:11px 13px; font-family:'Heebo',sans-serif; font-size:15px; color:var(--white);
+  outline:none; direction:rtl; width:100%;
+  transition:border-color .2s, box-shadow .2s;
+}
+.field input:focus,.field textarea:focus { border-color:var(--blue); box-shadow:0 0 0 3px rgba(30,144,255,0.12); }
+.field textarea { resize:vertical; min-height:70px; }
+
+.chips { display:flex; flex-wrap:wrap; gap:7px; margin-bottom:12px; }
+.chip {
+  display:flex; align-items:center; gap:5px;
+  background:rgba(255,75,75,0.07); border:1px solid rgba(255,75,75,0.22);
+  border-radius:20px; padding:6px 12px; font-size:13px;
+  cursor:pointer; color:#ff9090; user-select:none;
+  transition:background .15s, border-color .15s;
+}
+.chip:hover  { background:rgba(255,75,75,0.16); border-color:rgba(255,75,75,0.45); }
+.chip.on     { background:rgba(255,75,75,0.2); border-color:var(--red); color:var(--red); font-weight:600; }
+.no-fault {
+  display:flex; align-items:center; gap:7px;
+  background:rgba(0,230,118,0.07); border:1px solid rgba(0,230,118,0.22);
+  border-radius:8px; padding:10px 13px; font-size:13px;
+  cursor:pointer; color:var(--green); user-select:none;
+  transition:background .15s;
+}
+.no-fault.on { background:rgba(0,230,118,0.14); border-color:var(--green); font-weight:600; }
+
+.sig-wrap { background:rgba(0,0,0,0.3); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+canvas#sig { display:block; width:100%; height:110px; cursor:crosshair; touch-action:none; }
+
+/* Buttons */
+.btn {
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  border:none; border-radius:10px; padding:13px 20px;
+  font-family:'Heebo',sans-serif; font-size:15px; font-weight:600;
+  cursor:pointer; transition:transform .1s, box-shadow .15s; width:100%;
+}
+.btn:active { transform:scale(0.97); }
+.btn-copy {
+  background:linear-gradient(135deg,#2d5a27,#1e7a16);
+  color:#fff; box-shadow:0 4px 18px rgba(30,150,30,0.35);
+  font-size:17px; padding:16px;
+}
+.btn-copy:hover { box-shadow:0 4px 28px rgba(30,150,30,0.55); }
+.btn-xl { background:linear-gradient(135deg,#1d6f42,#157a3a); color:#fff; box-shadow:0 4px 16px rgba(29,111,66,0.35); }
+.btn-ghost { background:rgba(255,255,255,0.06); border:1px solid var(--border); color:var(--muted); font-size:13px; padding:9px 16px; border-radius:8px; width:auto; }
+.btn-ghost:hover { background:rgba(255,255,255,0.1); color:var(--white); }
+
+.actions { display:flex; flex-direction:column; gap:10px; margin-top:22px; padding-top:18px; border-top:1px solid var(--border); }
+.actions-row { display:flex; gap:10px; }
+
+/* Copy preview box */
+#previewBox {
+  display:none;
+  background:rgba(0,0,0,0.4); border:1px solid var(--border);
+  border-radius:10px; padding:16px; margin-top:16px;
+  font-size:13px; line-height:1.8; color:#c0d8f0;
+  white-space:pre-wrap; direction:rtl;
+}
+
+/* Toast */
+#toast {
+  position:fixed; bottom:24px; left:50%;
+  transform:translateX(-50%) translateY(80px);
+  background:#1a2f4a; border:1px solid var(--border);
+  border-radius:12px; padding:13px 26px;
+  font-size:14px; font-weight:500;
+  box-shadow:0 8px 40px rgba(0,0,0,0.5);
+  transition:transform .3s cubic-bezier(.34,1.4,.64,1);
+  z-index:999; white-space:nowrap;
+}
+#toast.show { transform:translateX(-50%) translateY(0); }
+
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator {
+  filter:invert(0.6) sepia(1) saturate(3) hue-rotate(180deg); cursor:pointer;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hud-top">
+    <div class="hud-logo">
+      <div class="drone-icon">🚁</div>
+      <div class="hud-title">
+        <h1>יומן טיסה</h1>
+        <p>DRONE FLIGHT LOG</p>
+      </div>
+    </div>
+    <div class="clk" id="clk">--:--</div>
+  </div>
+</header>
+
+<main>
+
+  <p class="sec">פרטי מפעיל</p>
+  <div class="card">
+    <div class="card-bar"></div>
+    <div class="row2">
+      <div class="field">
+        <label>שם מלא</label>
+        <input type="text" id="name" placeholder="ישראל ישראלי">
+      </div>
+      <div class="field">
+        <label>מספר אישי</label>
+        <input type="text" id="pid" placeholder="EMP-001">
+      </div>
+    </div>
+  </div>
+
+  <p class="sec">זמן הטיסה</p>
+  <div class="card">
+    <div class="card-bar"></div>
+    <div class="row2">
+      <div class="field">
+        <label>תאריך</label>
+        <input type="date" id="fdate">
+      </div>
+      <div class="field">
+        <label>שעת המראה</label>
+        <input type="time" id="ftime">
+      </div>
+    </div>
+  </div>
+
+  <p class="sec">פרטי טיסה</p>
+  <div class="card">
+    <div class="card-bar"></div>
+    <div class="field">
+      <label>סוג רחפן</label>
+      <input type="text" id="dtype" placeholder='Cinewhoop 5", DJI Mini 4 Pro...'>
+    </div>
+    <div class="field">
+      <label>מטרת הטיסה</label>
+      <input type="text" id="purpose" placeholder="סיור, מיפוי, אימון...">
+    </div>
+  </div>
+
+  <p class="sec">תקלות</p>
+  <div class="card">
+    <div class="card-bar card-bar-red"></div>
+    <div class="chips" id="chips">
+      <div class="chip" data-f="GPS / ניווט">📡 GPS</div>
+      <div class="chip" data-f="תקשורת">📶 תקשורת</div>
+      <div class="chip" data-f="סוללה">🔋 סוללה</div>
+      <div class="chip" data-f="מנועים / ESC">⚙️ מנועים</div>
+      <div class="chip" data-f="מצלמה">📷 מצלמה</div>
+      <div class="chip" data-f="שלט">🕹️ שלט</div>
+      <div class="chip" data-f="מכאני">🔧 מכאני</div>
+      <div class="chip" data-f="נחיתת חירום">🚨 חירום</div>
+    </div>
+    <div class="no-fault" id="noFault">✅ ללא תקלות – טיסה תקינה</div>
+    <div class="field" style="margin-top:12px;">
+      <label>פירוט נוסף</label>
+      <textarea id="fdetail" placeholder="תאר את התקלה..."></textarea>
+    </div>
+  </div>
+
+  <p class="sec">חתימה</p>
+  <div class="card">
+    <div class="card-bar"></div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:8px;">חתום כאן:</p>
+    <div class="sig-wrap"><canvas id="sig" width="800" height="110"></canvas></div>
+    <div style="margin-top:8px;"><button class="btn btn-ghost" onclick="clearSig()">🗑️ נקה</button></div>
+  </div>
+
+  <div class="actions">
+    <!-- PRIMARY: Copy to clipboard -->
+    <button class="btn btn-copy" onclick="copyToClipboard()">
+      📋 העתק סיכום לשליחה בוואטסאפ
+    </button>
+    <!-- SECONDARY: Excel -->
+    <div class="actions-row">
+      <button class="btn btn-xl" onclick="exportExcel()" style="flex:1;">
+        📊 הורד אקסל
+      </button>
+      <button class="btn btn-ghost" onclick="resetForm()">🔄 איפוס</button>
+    </div>
+  </div>
+
+  <!-- Preview of copied text -->
+  <div id="previewBox"></div>
+
+</main>
+
+<div id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+// CLOCK
+setInterval(()=>{
+  const n=new Date();
+  document.getElementById('clk').textContent=n.toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'});
+},1000);
+
+// Pre-fill
+const n=new Date();
+document.getElementById('fdate').value=n.toISOString().split('T')[0];
+document.getElementById('ftime').value=n.toTimeString().slice(0,5);
+
+// CHIPS
+const chips=document.querySelectorAll('.chip');
+const noFaultEl=document.getElementById('noFault');
+let isNoFault=false;
+chips.forEach(c=>c.addEventListener('click',()=>{
+  if(isNoFault){isNoFault=false;noFaultEl.classList.remove('on');}
+  c.classList.toggle('on');
+}));
+noFaultEl.addEventListener('click',()=>{
+  isNoFault=!isNoFault;
+  noFaultEl.classList.toggle('on',isNoFault);
+  if(isNoFault) chips.forEach(c=>c.classList.remove('on'));
+});
+function getFaults(){
+  if(isNoFault) return 'ללא תקלות ✅';
+  const s=[...chips].filter(c=>c.classList.contains('on')).map(c=>c.dataset.f);
+  return s.length ? '⚠️ '+s.join(', ') : '';
+}
+
+// SIGNATURE
+const canvas=document.getElementById('sig');
+const ctx=canvas.getContext('2d');
+ctx.strokeStyle='#1E90FF';ctx.lineWidth=2.5;ctx.lineCap='round';ctx.lineJoin='round';
+let drawing=false,lx=0,ly=0,hasSig=false;
+function pos(e){
+  const r=canvas.getBoundingClientRect(),sx=canvas.width/r.width,sy=canvas.height/r.height;
+  if(e.touches) return[(e.touches[0].clientX-r.left)*sx,(e.touches[0].clientY-r.top)*sy];
+  return[(e.clientX-r.left)*sx,(e.clientY-r.top)*sy];
+}
+canvas.addEventListener('mousedown',e=>{drawing=true;[lx,ly]=pos(e);});
+canvas.addEventListener('mousemove',e=>{
+  if(!drawing)return;const[x,y]=pos(e);
+  ctx.beginPath();ctx.moveTo(lx,ly);ctx.lineTo(x,y);ctx.stroke();
+  [lx,ly]=[x,y];hasSig=true;
+});
+canvas.addEventListener('mouseup',()=>drawing=false);
+canvas.addEventListener('mouseleave',()=>drawing=false);
+canvas.addEventListener('touchstart',e=>{e.preventDefault();drawing=true;[lx,ly]=pos(e);},{passive:false});
+canvas.addEventListener('touchmove',e=>{
+  e.preventDefault();if(!drawing)return;const[x,y]=pos(e);
+  ctx.beginPath();ctx.moveTo(lx,ly);ctx.lineTo(x,y);ctx.stroke();
+  [lx,ly]=[x,y];hasSig=true;
+},{passive:false});
+canvas.addEventListener('touchend',()=>drawing=false);
+function clearSig(){ctx.clearRect(0,0,canvas.width,canvas.height);hasSig=false;}
+
+// TOAST
+function toast(msg,dur=2800){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),dur);
+}
+
+// VALIDATE
+function getData(){
+  return {
+    name:    document.getElementById('name').value.trim(),
+    pid:     document.getElementById('pid').value.trim(),
+    date:    document.getElementById('fdate').value,
+    time:    document.getElementById('ftime').value,
+    drone:   document.getElementById('dtype').value.trim(),
+    purpose: document.getElementById('purpose').value.trim()||'—',
+    faults:  getFaults(),
+    details: document.getElementById('fdetail').value.trim()||'',
+  };
+}
+function validate(){
+  const d=getData();
+  if(!d.name)   {toast('⚠️ נא למלא שם');return false;}
+  if(!d.pid)    {toast('⚠️ נא למלא מספר אישי');return false;}
+  if(!d.drone)  {toast('⚠️ נא למלא סוג רחפן');return false;}
+  if(!d.faults) {toast('⚠️ נא לסמן תקלות או "ללא תקלות"');return false;}
+  if(!hasSig)   {toast('⚠️ נא לחתום');return false;}
+  return true;
+}
+
+// BUILD TEXT
+function buildText(d){
+  const detailLine = d.details ? `\nפרטים: ${d.details}` : '';
+  return `🚁 דוח טיסה
+
+שם: ${d.name}
+מ"א: ${d.pid}
+תאריך: ${d.date}  שעה: ${d.time}
+רחפן: ${d.drone}
+מטרה: ${d.purpose}
+תקלות: ${d.faults}${detailLine}
+
+ממתין לאישור מנהל ✅`;
+}
+
+// COPY
+function copyToClipboard(){
+  if(!validate()) return;
+  const d=getData();
+  const text=buildText(d);
+
+  navigator.clipboard.writeText(text).then(()=>{
+    // show preview
+    const box=document.getElementById('previewBox');
+    box.textContent=text;
+    box.style.display='block';
+    toast('✅ הועתק! פתח וואטסאפ והדבק בקבוצה',3500);
+  }).catch(()=>{
+    // fallback: select from textarea
+    const ta=document.createElement('textarea');
+    ta.value=text; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    const box=document.getElementById('previewBox');
+    box.textContent=text; box.style.display='block';
+    toast('✅ הועתק! פתח וואטסאפ והדבק בקבוצה',3500);
+  });
+}
+
+// EXCEL
+function exportExcel(){
+  if(!validate()) return;
+  const d=getData();
+  const rows=[
+    ['שדה','ערך'],
+    ['שם',d.name],
+    ['מספר אישי',d.pid],
+    ['תאריך',d.date],
+    ['שעת המראה',d.time],
+    ['סוג רחפן',d.drone],
+    ['מטרת הטיסה',d.purpose],
+    ['תקלות',d.faults],
+    ['פרטים',d.details||'—'],
+    ['חותמת זמן',new Date().toLocaleString('he-IL')],
+  ];
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols']=[{wch:18},{wch:36}];
+  ws['!rtl']=true;
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'יומן טיסה');
+  XLSX.writeFile(wb,`flight_${d.pid}_${d.date}.xlsx`);
+  toast('📊 קובץ אקסל הורד');
+}
+
+// RESET
+function resetForm(){
+  ['name','pid','dtype','purpose','fdetail'].forEach(id=>document.getElementById(id).value='');
+  const n=new Date();
+  document.getElementById('fdate').value=n.toISOString().split('T')[0];
+  document.getElementById('ftime').value=n.toTimeString().slice(0,5);
+  chips.forEach(c=>c.classList.remove('on'));
+  isNoFault=false; noFaultEl.classList.remove('on');
+  clearSig();
+  document.getElementById('previewBox').style.display='none';
+}
+</script>
+</body>
+</html>
