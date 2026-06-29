@@ -374,6 +374,8 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 
+const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbxiOwk-uCjekd11ZZb0tFqx0FwLsQD-yjM1RUwgfb1TAxkwOfuv7LJEsznYwspyucZZ/exec';
+
 const USERS = {
   '1111': { role: 'מפקד' },
   '0000': { role: 'חייל-עפ' }
@@ -533,6 +535,21 @@ function finishAndSave() {
 
   allFlights.push(entry);
   localStorage.setItem('kartis_flights', JSON.stringify(allFlights));
+
+  // Send to Google Sheets
+  const sheetsPayload = {
+    date: d.date, name: d.name, pid: d.pid, role: d.role,
+    time: d.time, landTime, location: d.location, purpose: d.purpose,
+    drone: d.drone, msad: d.msad, bdach: 'תקין',
+    faults: noFault ? 'ללא תקלות' : faults,
+    faultDetail: faultDetail || '—',
+    timestamp: new Date().toLocaleString('he-IL')
+  };
+  fetch(SHEETS_URL, {
+    method: 'POST', mode: 'no-cors',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify(sheetsPayload)
+  }).catch(err => console.warn('Sheets:', err));
 
   // Export Excel with ALL flights
   const ws = XLSX.utils.json_to_sheet(allFlights);
